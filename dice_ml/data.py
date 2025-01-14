@@ -34,7 +34,7 @@ def decide(params):
     """
     if 'dataframe' in params:
         # if params contain a Pandas dataframe, then use PublicData class
-        from dice_ml.data_interfaces.public_data_interface import PublicData
+        from dice_ml.data_interfaces.public_data_interface_mod import PublicData
         return PublicData
     else:
         # use PrivateData if only meta data is provided
