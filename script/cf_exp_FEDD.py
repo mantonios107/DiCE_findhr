@@ -90,8 +90,9 @@ def define_target(args, df_qId_FEDD):
 
 def define_explainer_FEDD(ranker, df_qId_FEDD_pre, cols_dict_cf, feature_dtypes, explanation_method):
     data_dice = dice_ml.Data(dataframe=df_qId_FEDD_pre[cols_dict_cf['cols_pred'] + [cols_dict_cf['outcome_name_col']]],
-                     continuous_features=cols_dict_cf['continuous_features'],
-                     outcome_name=cols_dict_cf['outcome_name_col'])
+                             continuous_features=cols_dict_cf['continuous_features'],
+                             categorical_features=cols_dict_cf['categorical_features'],
+                             outcome_name=cols_dict_cf['outcome_name_col'])
 
     kwargs = {'top_k': MacroVariables.TOP_K, 'features_dtype': feature_dtypes}
 
