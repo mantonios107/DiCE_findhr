@@ -5,6 +5,7 @@ from ranking import ranking_pipeline
 from preprocessing import load_dataset, build_fitness_matrix
 from super_model import SuperRankerPipeline
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import MultiLabelBinarizer
 from utils import rank2relevance
 from lightgbm import LGBMRanker
 import pandas as pd
@@ -21,11 +22,11 @@ def parse_args():
     parser.add_argument('--job_id', '-j', type=int, default=161,  # 160-199
                         help='The job id for which the counterfactual explanation is to be generated')
 
-    parser.add_argument('--candidate_position', '-c', type=int, default=14,  # 16
+    parser.add_argument('--candidate_position', '-c', type=int, default=13,  # 16
                         help='The position of the candidate in the ranking for which the counterfactual explanation is to be generated')
 
     parser.add_argument('--explanation_method', '-m', type=str, choices=['random', 'genetic', 'kdtree'],
-                        default='random', help='The method for generating counterfactual explanations')
+                        default='genetic', help='The method for generating counterfactual explanations')
 
     group = parser.add_mutually_exclusive_group()
     group.add_argument('--target_rank', '-r', type=int, default=MacroVariables.TOP_K,
@@ -47,18 +48,46 @@ def data_split(df_qId_kId):
 
     return df_train, df_val, df_test
 
+
+def convert_skills(df, column_name):
+    # 1. Convert tuples to list-of-strings if necessary
+    df[column_name] = df[column_name].apply(lambda x: list(x))
+
+    # 2. Use MultiLabelBinarizer
+    mlb = MultiLabelBinarizer()
+    skills_encoded = mlb.fit_transform(df[column_name])
+
+    # 3. Create new columns for each skill
+    skill_cols = [f"{column_name}_{skill}" for skill in mlb.classes_]
+    df_skills = pd.DataFrame(skills_encoded, columns=skill_cols)
+
+    # 4. Concatenate back to original DataFrame (optionally drop the original "Skills" column)
+    df_transformed = pd.concat([df.drop(columns=[column_name]), df_skills], axis=1)
+    return df_transformed, mlb
+
+
 def load_dataset(fair_data=True):
     # Read dataset
     df_JDS = pd.read_csv(MacroVariables.FILEPATH_JOB_OFFERS,  # converters for columns of lists of values
-                         converters={c:convert_cols_mod for c in ["Age_j", "Competences_j", "Knowledge_j", "Languages_j"]})
+                         converters={c: convert_cols_mod for c in [
+                             # "Age_j",
+                             "Competences_j", "Knowledge_j", "Languages_j"]})
+
     df_CDS = pd.read_csv(MacroVariables.FILEPATH_CURRICULA,  # converters for columns of lists of values
-                         converters={c:convert_cols_mod for c in ["Age_c", "Experience_c", "Competences_c", "Knowledge_c", "Languages_c"]})
+                         converters={c: convert_cols_mod for c in [
+                             # "Age_c",
+                             "Experience_c", "Competences_c", "Knowledge_c", "Languages_c"]})
+    # df_CDS = df_CDS.iloc[:20]
+    # df_JDS = df_JDS.iloc[:20]
+    df_CDS.drop(columns=['Age_c'], inplace=True)
+    df_JDS.drop(columns=['Age_j'], inplace=True)
 
     df_ADS_FAIR = pd.read_csv(MacroVariables.FILEPATH_ADS_FAIR)
     df_ADS_UNFAIR = pd.read_csv(MacroVariables.FILEPATH_ADS_UNFAIR)
 
 
     cols_dict_HUDD = define_cols_dict_HUDD()
+
 
     if fair_data:
         # Merge CDS and JDS through ADS in a single dataframe
@@ -72,8 +101,13 @@ def load_dataset(fair_data=True):
                             cols_dict_HUDD['col_target']]
     df_CDS_JDS[cols_dict_HUDD['col_rank']] = np.minimum(df_CDS_JDS.groupby("qId")[cols_dict_HUDD['col_target']].rank('dense', ascending=False), MacroVariables.TOP_K + 1)
 
+    # dict_multilabelbinarizer = {}
+    # for col in cols_dict_HUDD['setlist_features']:
+    #     df_CDS_JDS, mlb = convert_skills(df_CDS_JDS, col)
+    #     dict_multilabelbinarizer[col] = mlb
+
     # TODO: Change the original data
-    return df_CDS_JDS, cols_dict_HUDD
+    return df_CDS_JDS, cols_dict_HUDD# , dict_multilabelbinarizer
 
 
 def define_cols_dict_HUDD():
@@ -83,10 +117,14 @@ def define_cols_dict_HUDD():
 
     # Define the subset of columns of the HUDD dataset describing the candidate,
     # which are used in the preprocessing+prediction pipeline
-    cols_c = ['Education_c', 'Age_c', 'Gender_c', 'Contract_c',
+    cols_c = ['Education_c',
+              # 'Age_c',
+              'Gender_c', 'Contract_c',
               'Nationality_c', 'Competences_c', 'Knowledge_c', 'Languages_c',
               'Experience_c']
-    cols_j = ['Education_j', 'Age_j', 'Gender_j',  'Contract_j', 'Nationality_j', 'Competences_j',
+    cols_j = ['Education_j',
+              # 'Age_j',
+              'Gender_j',  'Contract_j', 'Nationality_j', 'Competences_j',
               'Knowledge_j', 'Languages_j', 'Experience_j']
     cols_pred_preprocess = cols_c + cols_j
     cols_not_for_pred = ['Occupation_c', 'Occupation_j']
@@ -96,20 +134,32 @@ def define_cols_dict_HUDD():
 
     # Define the subset of columns of the HUDD dataset for the counterfactual explanation
     outcome_name_col = 'lambda'  # 'pred_rank'
-    continuous_features = ['Age_c', 'Experience_c', 'Experience_j']  # ['Age_c', 'Experience_c'],
-    categorical_features = ['Education_c', 'Gender_c',
+    continuous_features = [
+        # 'Age_c',
+        'Experience_c', 'Experience_j']  # ['Age_c', 'Experience_c'],
+    categorical_features = ['Education_c', 'Gender_c', 'Contract_c', 'Nationality_c',
+                            # 'Competences_c', 'Knowledge_c', 'Languages_c',
+                            'Education_j', 'Gender_j', 'Contract_j', 'Nationality_j',
+                            # 'Competences_j', 'Knowledge_j', 'Languages_j',
+                            # 'Age_j'
+                            ]
+    setlist_features = ['Competences_c', 'Knowledge_c', 'Languages_c',
+                        'Competences_j', 'Knowledge_j', 'Languages_j',
+                        # 'Age_j'
+                        ]
+    cols_pred = ['Education_c',
+                 # 'Age_c',
+                 'Gender_c',
        'Contract_c', 'Nationality_c', 'Competences_c', 'Knowledge_c',
-       'Languages_c', 'Education_j',
-       'Gender_j', 'Contract_j', 'Nationality_j', 'Competences_j',
-       'Knowledge_j', 'Languages_j', 'Age_j']
-    cols_pred = ['Education_c', 'Age_c', 'Gender_c',
-       'Contract_c', 'Nationality_c', 'Competences_c', 'Knowledge_c',
-       'Languages_c', 'Experience_c', 'Education_j', 'Age_j',
+       'Languages_c', 'Experience_c', 'Education_j',
+                 # 'Age_j',
        'Gender_j', 'Contract_j', 'Nationality_j', 'Competences_j',
        'Knowledge_j', 'Languages_j', 'Experience_j']
+
     # continuous_features + categorical_features
     return {'outcome_name_col': outcome_name_col, 'continuous_features': continuous_features,
-            'categorical_features': categorical_features, 'cols_pred': cols_pred,
+            'categorical_features': categorical_features, "setlist_features": setlist_features,
+            'cols_pred': cols_pred,
             'cols_id': cols_id, 'cols_sensitive': cols_sensitive, 'col_target': col_target, 'col_rank': col_rank,
             'cols_pred_preprocess': cols_pred_preprocess, 'cols_not_for_pred': cols_not_for_pred}
 
@@ -119,7 +169,8 @@ def define_cols_dict_FEDD():
     continuous_features = ['fitness_Languages', 'fitness_Competences',
                            'fitness_Knowledge']  # ['Age_c', 'Experience_c'],
     categorical_features = ['fitness_Contract', 'fitness_Nationality', 'fitness_Education', 'fitness_Experience',
-                            'fitness_Age', 'fitness_Gender']
+                            #'fitness_Age',
+                            'fitness_Gender']
     cols_pred = continuous_features + categorical_features
 
     cols_id = ['qId', 'kId']  # ids
@@ -189,6 +240,8 @@ def define_explainer_HUDD(pipeline_fitness, ranker, df_qId_HUDD_pre, cols_dict_H
 
     data_dice = dice_ml.Data(dataframe=df_qId_HUDD_pre[cols_dict_HUDD['cols_pred'] + [cols_dict_HUDD['outcome_name_col']]],
                              continuous_features=cols_dict_HUDD['continuous_features'],
+                             categorical_features=cols_dict_HUDD['categorical_features'],
+                             setlist_features=cols_dict_HUDD['setlist_features'],
                              outcome_name=cols_dict_HUDD['outcome_name_col'])
 
     kwargs = {'top_k': MacroVariables.TOP_K, 'features_dtype': feature_dtypes}
@@ -331,3 +384,5 @@ if __name__ == '__main__':
     print('Counterfactual Explanations:')
     explanations_HUDD = get_explanations_HUDD(df_qId_HUDD, exp_c, cols_dict_HUDD, explainer)
     print(explanations_HUDD.visualize_as_dataframe())
+
+    explanations_HUDD.cf_examples_list[0].final_cfs_df.to_csv('final_cfs_df_HUDD.csv')

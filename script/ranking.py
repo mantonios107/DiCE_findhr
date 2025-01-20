@@ -29,7 +29,7 @@ def init(df_fitness_mat):
         'fitness_Nationality',
         'fitness_Education',
         'fitness_Experience',
-        'fitness_Age',
+        # 'fitness_Age',
         'fitness_Gender',
         'fitness_Languages',
         'fitness_Competences',

@@ -27,7 +27,8 @@ def define_cols_dict():
     continuous_features = ['fitness_Languages', 'fitness_Competences',
                            'fitness_Knowledge']  # ['Age_c', 'Experience_c'],
     categorical_features = ['fitness_Contract', 'fitness_Nationality', 'fitness_Education', 'fitness_Experience',
-                            'fitness_Age', 'fitness_Gender']
+                            # 'fitness_Age',
+                            'fitness_Gender']
     cols_pred = continuous_features + categorical_features
     return {'outcome_name_col': outcome_name_col, 'continuous_features': continuous_features,
             'categorical_features': categorical_features, 'cols_pred': cols_pred}
@@ -127,6 +128,7 @@ if __name__ == '__main__':
     ranker, df_test, cols_dict_FEDD = ranking_pipeline(df_fitness_mat)
 
     df_qId_FEDD, df_qId_HUDD, exp_c, cols_dict_cf = extract_explicand_data_cf(args.job_id, args.candidate_position, df_test, ranker, cols_dict_FEDD, df_CDS_JDS)
+    # Convert data types
     df_qId_FEDD_pre, feature_dtypes = prepare_data_cf(df_qId_FEDD, cols_dict_cf)
 
     explicand_class, tgt_cf_rank, tgt_cf_score, tgt_cf_candidate = define_target(args, df_qId_FEDD)
@@ -135,3 +137,5 @@ if __name__ == '__main__':
     print('Explanations for the counterfactuals:')
     explanations_FEDD = get_explanations_FEDD(df_qId_FEDD, exp_c, cols_dict_cf, explainer)
     print(explanations_FEDD.visualize_as_dataframe())
+
+    explanations_FEDD.cf_examples_list[0].final_cfs_df.to_csv('final_cfs_df_FEDD.csv')

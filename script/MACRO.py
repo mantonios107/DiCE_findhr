@@ -6,7 +6,7 @@ from dataclasses import dataclass
 
 @dataclass
 class MacroVariables:
-    PATH = pathlib.Path("../course_findhr/for_students/data_notebooks/data")
+    PATH = pathlib.Path("../data")
 
     SUFFIX_DATASET = '1'  # '1' for demonstration, '2' for practice
 

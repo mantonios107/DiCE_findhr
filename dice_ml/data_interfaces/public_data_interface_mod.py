@@ -125,11 +125,7 @@ class PublicData(_BaseData):
                 else:
                     data_df[feature] = data_df[feature].astype(
                         np.int32)
-        if len(setlist_feature_names) > 0:
-            for feature in setlist_feature_names:
-                data_df[feature] = data_df[feature].apply(list)
-            data_df[setlist_feature_names] = data_df[setlist_feature_names].astype(
-                'object')
+
         return data_df
 
     def get_features_range(self, permitted_range_input=None, features_dict=None):
@@ -174,7 +170,7 @@ class PublicData(_BaseData):
                 else:
                     result[feature_name] = (df[feature_name] - min_value) / (max_value - min_value)
         else:
-            result = result.astype('float')
+            # result = result.astype('float')
             for feature_index in self.continuous_feature_indexes:
                 feature_name = self.feature_names[feature_index]
                 max_value = self.data_df[feature_name].max()
@@ -200,8 +196,7 @@ class PublicData(_BaseData):
         for feature_name in self.continuous_feature_names:
             max_value = self.data_df[feature_name].max()
             min_value = self.data_df[feature_name].min()
-            result[feature_name] = (
-                                           df[feature_name] * (max_value - min_value)) + min_value
+            result[feature_name] = (df[feature_name] * (max_value - min_value)) + min_value
         return result
 
     def get_valid_feature_range(self, feature_range_input, normalized=True):
@@ -232,7 +227,7 @@ class PublicData(_BaseData):
                 feature_range[feature_name].append(maxx)
             elif feature_name in self.setlist_feature_names:
                 # setlist features
-                feature_range[feature_name] = self.data_df.loc[:, feature_name].unique()
+                feature_range[feature_name] = list(self.data_df.loc[:, feature_name].unique())
             else:
                 # categorical features
                 feature_range[feature_name] = feature_range_input[feature_name]

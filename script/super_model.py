@@ -12,7 +12,7 @@ class SuperRankerPipeline:
     def predict(self, X):
         # params_pipeline = {k: v for k, v in params.items() if k in self.pipeline.get_params().keys()}
         _intermediate = self.pipeline.transform(X)
-        print('_intermediate', _intermediate)
+        # print('_intermediate', _intermediate)
         # _intermediate.drop(columns=['qId', 'kId'], inplace=True)
         return self.ranker.predict(_intermediate[self.cols_dict_FEDD['cols_pred']])
 

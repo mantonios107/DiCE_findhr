@@ -63,7 +63,7 @@ def build_matching_functions():
         (('Experience_j', 'Experience_c'), ('fitness_Experience',)): MatchOrdinal(),
 
          # MatchFeatureInclusion: 1 = candidate value in (job value(0,), >= job value(1,)) OR job value is 'Any', 0 = otherwise
-        (('Age_j', 'Age_c'), ('fitness_Age',)): MatchFeatureInclusion(),
+        # (('Age_j', 'Age_c'), ('fitness_Age',)): MatchFeatureInclusion(),
 
          # MatchFeatureSet: 1 = fraction of job value that appear in candidate value
         (('Languages_j', 'Languages_c'), ('fitness_Languages',)): MatchFeatureSet(),

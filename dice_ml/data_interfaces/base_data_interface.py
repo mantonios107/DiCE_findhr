@@ -32,6 +32,16 @@ class _BaseData(ABC):
         self.continuous_feature_indexes = [query_instance.columns.get_loc(name) for name in
                                            self.continuous_feature_names]
 
+    def set_categorical_feature_indexes(self, query_instance):
+        """Remaps continuous feature indices based on the query instance"""
+        self.categorical_feature_indexes = [query_instance.columns.get_loc(name) for name in
+                                           self.categorical_feature_names]
+
+    def set_setlist_feature_indexes(self, query_instance):
+        """Remaps continuous feature indices based on the query instance"""
+        self.setlist_feature_indexes = [query_instance.columns.get_loc(name) for name in
+                                           self.setlist_feature_names]
+
     def check_features_to_vary(self, features_to_vary):
         if features_to_vary is not None and features_to_vary != 'all':
             not_training_features = set(features_to_vary) - set(self.feature_names)
