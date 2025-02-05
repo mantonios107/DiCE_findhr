@@ -49,21 +49,21 @@ def data_split(df_qId_kId):
     return df_train, df_val, df_test
 
 
-def convert_skills(df, column_name):
-    # 1. Convert tuples to list-of-strings if necessary
-    df[column_name] = df[column_name].apply(lambda x: list(x))
-
-    # 2. Use MultiLabelBinarizer
-    mlb = MultiLabelBinarizer()
-    skills_encoded = mlb.fit_transform(df[column_name])
-
-    # 3. Create new columns for each skill
-    skill_cols = [f"{column_name}_{skill}" for skill in mlb.classes_]
-    df_skills = pd.DataFrame(skills_encoded, columns=skill_cols)
-
-    # 4. Concatenate back to original DataFrame (optionally drop the original "Skills" column)
-    df_transformed = pd.concat([df.drop(columns=[column_name]), df_skills], axis=1)
-    return df_transformed, mlb
+# def convert_skills(df, column_name):
+#     # 1. Convert tuples to list-of-strings if necessary
+#     df[column_name] = df[column_name].apply(lambda x: list(x))
+#
+#     # 2. Use MultiLabelBinarizer
+#     mlb = MultiLabelBinarizer()
+#     skills_encoded = mlb.fit_transform(df[column_name])
+#
+#     # 3. Create new columns for each skill
+#     skill_cols = [f"{column_name}_{skill}" for skill in mlb.classes_]
+#     df_skills = pd.DataFrame(skills_encoded, columns=skill_cols)
+#
+#     # 4. Concatenate back to original DataFrame (optionally drop the original "Skills" column)
+#     df_transformed = pd.concat([df.drop(columns=[column_name]), df_skills], axis=1)
+#     return df_transformed, mlb
 
 
 def load_dataset(fair_data=True):
@@ -317,6 +317,8 @@ def evaluate(ranker, df_eval, cols_dict):
 def transform_split(df_train_HUDD, df_val_HUDD, df_test_HUDD, pipeline_fitness, cols_dict_HUDD):
     df_train_FEDD = pipeline_fitness.transform(df_train_HUDD)
     df_train_FEDD.reset_index(drop=True, inplace=True)
+    print('cols_dict_HUDD', cols_dict_HUDD)
+
     df_train_FEDD[cols_dict_HUDD['cols_id']] = df_train_HUDD[cols_dict_HUDD['cols_id']].values
     df_train_FEDD[cols_dict_HUDD['col_rank']] = df_train_HUDD[cols_dict_HUDD['col_rank']].values
 
